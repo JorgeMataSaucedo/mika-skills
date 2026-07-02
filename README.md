@@ -1,61 +1,67 @@
 # mika-skills
 
-**Anthropic Skills** for [Mika Core](https://mikatalab.com/spec) · progressive-disclosure expertise packages that Claude loads on-demand.
+**Anthropic Skills** for [Mika Core](https://mikatalab.com/spec) · LLM-first runtime instruction contracts, not human docs.
 
 Skills are the application layer above [MCP](https://modelcontextprotocol.io) · complementary to [mika-vera-mcp-server](https://github.com/JorgeMataSaucedo/mika-vera-mcp-server).
 
-## The 4 Skills
+## Skills
 
-| Skill | Trigger | Purpose |
+| Skill | Trigger | Chain |
 |---|---|---|
-| **vera-audit-first** | User asks operator data OR wants audit-first LLM example | Query Vera with full trace visibility |
-| **mikalogistics-operator-support** | Operator asks about docs, pay, trips, bonuses | Contextual operator support + UX guidance |
-| **capa4-autoevolution-review** | User asks about pending proposals, commits, rollbacks | Review Mika's self-modification loop |
-| **mos-rh-multi-ia-consult** | Difficult HR decision needing multi-model consensus | Orchestrate 4-6 IAs vote with dissent tracking |
+| **vera-audit-first** | User asks operator data OR wants audit-first LLM example | MCP tools `vera_ask`, `vera_trace_summary` |
+| **mikalogistics-operator-support** | Operator asks docs/pay/trips/bonuses/agenda | Chains `vera-audit-first` + UX guidance |
+| **capa4-autoevolution-review** | User reviews pending proposals/commits/rollbacks | MCP tools `mika_autoevolution_*` |
+| **mos-rh-multi-ia-consult** | Difficult HR decision needing multi-model consensus | Multi-IA parallel dispatch script |
+
+## Style
+
+All skills follow the LLM-first style guide inspired by [gentle-ai](https://github.com/Gentleman-Programming/gentle-ai):
+
+- Body budget 180-450 tokens (700 max)
+- Required order: Activation Contract → Hard Rules → Decision Gates → Execution Steps → Output Contract → References
+- Imperative language ("Load X · Check Y · Return Z")
+- Frontmatter with `license`, `author`, `version`, single-line quoted `description` starting with `"Trigger: ..."`
 
 ## Install
 
 ### Claude Code
 
 ```bash
-# Clone this repo somewhere accessible
 git clone https://github.com/JorgeMataSaucedo/mika-skills ~/mika-skills
-
-# Copy skills to Claude's skills directory
-cp -r ~/mika-skills/* ~/.claude/skills/
+cp -r ~/mika-skills/*/ ~/.claude/skills/
 ```
 
 ### Claude Desktop
 
-Skills are loaded from `~/Library/Application Support/Claude/skills/` (macOS) or `%APPDATA%\Claude\skills\` (Windows).
+Copy skill directories to `~/Library/Application Support/Claude/skills/` (macOS) or `%APPDATA%\Claude\skills\` (Windows).
 
 ## Dependencies
 
-Most skills chain with `mika-vera-mcp-server` for live data. Install it:
+Most skills chain with `mika-vera-mcp-server` for live data. Install:
 
 ```bash
 git clone https://github.com/JorgeMataSaucedo/mika-vera-mcp-server
 ```
 
-And configure Claude Desktop/Code to load the MCP server (see that repo's README).
+Configure the MCP server in your Claude client (see that repo's README).
 
 ## Canon
 
-All skills respect:
+All skills respect (verbatim):
 
-1. **Zero cross-tenant memory** · Vera is isolated per vertical
-2. **Failure taxonomy visible** · `mlTrace` anonymized public
-3. **Guardian semantic** filters every LLM output
-4. **Silencio honesto antes que ficción cómoda** · no invented data
-5. **Sábado: cero código** · canon salud (Mikata rule)
-6. **Corte 10pm sagrado** · nightly boundary
+1. Zero cross-tenant memory · Vera isolated per vertical
+2. Failure taxonomy visible · `mlTrace` anonymized public
+3. Guardian semantic filters every LLM output pre-user
+4. Silence over fiction · no invented data
+5. Sábado cero código · canon salud
+6. Corte 10pm sagrado · nightly boundary
 
-## Portfolio Mikata AI Lab 2027
+## License
 
-Applying to Applied AI · Forward Deployed Engineer roles for Q1 2027.
+MIT · see [LICENSE](LICENSE)
 
-- **Public repos**: `mika-vera-mcp-server` · `mika-skills` · `mikatalab-blog`
-- **Live spec**: [mikatalab.com/spec](https://mikatalab.com/spec)
-- **Autoría**: Miguel Mata · [mikatalab.com](https://mikatalab.com)
+## Author
+
+**Miguel Mata** · [mikatalab.com](https://mikatalab.com) · Applied AI / Forward Deployed Engineer 2027
 
 **Infraestructura: Mika · Mikata AI Lab 🎀**

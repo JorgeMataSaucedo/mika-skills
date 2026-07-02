@@ -1,131 +1,79 @@
 ---
 name: mos-rh-multi-ia-consult
-description: Consult 4-6 Western AI models simultaneously on a real HR case for Mexican fleet operators · Sonnet 5 + Opus 4.7 + Fable 5 + GPT-5 + Gemini + DeepSeek · Mika orchestrates voting synthesis with dedup of conditions. Use when the user has a genuinely difficult hiring, promotion, disciplinary, or termination decision AND wants multi-model consensus with explicit dissent tracked.
+description: "Trigger: difficult Mexican logistics HR decision (hire, promote, discipline, terminate) needing 4-6 IA consensus with explicit dissent. Orchestrate voting synthesis and deduped condition aggregation."
+license: MIT
+metadata:
+  author: Miguel Mata · Mikata AI Lab
+  version: 1.0.0
 ---
 
 # mos-rh-multi-ia-consult
 
-You are orchestrating a **multi-IA consultation** on a real HR case for Mexican logistics fleet operators. The output is not a single opinion · it's a **structured voting synthesis** with explicit dissent tracking and deduped condition aggregation.
+## Activation Contract
 
-## When to use this skill
+Load this skill when the user:
+- Presents a real HR case for a fleet operator (candidato/empleado data + empresa contexto + concrete question)
+- Explicitly wants **multi-model consensus** (not a single opinion)
+- Builds MOS RH product features
+- Needs to demonstrate multi-AI orchestration for portfolio
 
-- User has a genuinely difficult HR decision (hire · promote · discipline · terminate · restructure)
-- User wants multi-model consensus with dissent visibility (not just "ask one LLM")
-- User is building MOS RH product features
-- User wants to demonstrate multi-AI orchestration for portfolio purposes
+Do NOT load for casual chat or when one LLM is enough.
 
-**DON'T use for**: simple questions, casual chat, or when a single LLM opinion is enough.
+## Hard Rules
 
-## The 4-6 AI models orchestrated
+1. NEVER hide dissent. If any model disagrees, report its decision + reasoning.
+2. NEVER skip a required data field. Structured case MUST include operator data + empresa context + concrete question.
+3. Dedupe conditions ONLY when functionally equivalent (same intent, different wording). Do NOT merge distinct constraints.
+4. NEVER report a decision without confidence + one-line summary from each model.
+5. Report cost and latency per model. Portfolio artifact requires transparency.
 
-**Anthropic**:
-- `claude-sonnet-5` · cost-efficient · 96% golden set PASS
-- `claude-opus-4-7` · high reasoning · 3x cost of Sonnet 5
-- `claude-fable-5` · Anthropic Mythos-class · experimental
+## Decision Gates
 
-**OpenAI**:
-- `gpt-5` · reasoning_effort tunable
+| Available API keys in env | Models to call |
+|---|---|
+| Anthropic only | Sonnet 5 · Opus 4.7 · Fable 5 (3-way Anthropic) |
+| Anthropic + OpenAI | + GPT-5 (4-way West) |
+| + `MIKA_GEMINI_API_KEY` | + Gemini 3 Pro (5-way) |
+| + `MIKA_DEEPSEEK_API_KEY` | + DeepSeek Chat (6-way full zoo) |
 
-**Google** (optional if `MIKA_GEMINI_API_KEY` configured):
-- `gemini-3-pro` · Google's flagship
+| Consensus split | Report as |
+|---|---|
+| Unanimous | `CONSENSUS: <decision> · N/N models` |
+| Majority ≥60% | `MAJORITY: <decision> · N/M · DISSENT: <models>` |
+| Even split | `DEADLOCK · escalate to human` |
 
-**DeepSeek** (optional if `MIKA_DEEPSEEK_API_KEY` configured):
-- `deepseek-chat` · Chinese frontier · counterweight to Western consensus
+## Execution Steps
 
-## How to consult
+1. Validate case has all required fields; if missing, ask before calling
+2. Dispatch parallel calls to all available models via `_track3_mos_rh_multiIA.py`
+3. Parse each response as JSON strict; on parse error, retry once with explicit "JSON only" prompt
+4. Group by `decision` field; count votes
+5. Dedupe conditions from majority voters (keep unique intent)
+6. Extract unique contributions per model (what only that model added)
 
-### Step 1 · Structure the HR case
+## Output Contract
 
-The case MUST include:
-- Candidato/empleado data (edad · experiencia · docs · referencias)
-- Contexto empresa (rotación · vacantes · políticas)
-- Pregunta concreta (contratar · rechazar · condiciones)
-
-Example:
 ```
-CANDIDATO · Operador de camión
-- Edad: 38 · Experiencia: 8 meses
-- Licencia federal Tipo E: VENCIDA hace 45 días
-- Apto médico: vigente
-- Referencias: 1 positiva · 1 neutral con impuntualidad
-
-Empresa:
-- Flotilla 50+ unidades
-- Rotación 24% · 2 vacantes 6 semanas
-
-PREGUNTA: ¿Contratar, rechazar, o hire_with_conditions?
-```
-
-### Step 2 · Send to all available models in parallel
-
-Each model responds in structured JSON:
-```json
-{
-  "decision": "hire | reject | hire_with_conditions",
-  "confidence": 0-100,
-  "reasoning": "1-3 frases honest",
-  "risk_flags": ["flag1", "flag2"],
-  "conditions": ["condicion1"],
-  "one_line_summary": "10-15 palabras"
-}
-```
-
-### Step 3 · Mika orchestrates the voting synthesis
-
-- **Majority vote** on `decision` field
-- **Deduplicate conditions** (Levenshtein or semantic similarity)
-- **Track dissent explicitly** · which models voted differently and why
-- **Highlight unique contributions** · what each model added that others missed
-
-### Step 4 · Present the synthesis
-
-Report format:
-```
-CONSENSUS: <majority decision> · N/M models
-
-CONDITIONS (deduped):
-- <condition 1> [S,O,F,G] ← models that proposed
-- <condition 2> [S,F] ← only Sonnet 5 + Fable 5
-...
+CONSENSUS / MAJORITY / DEADLOCK: <decision> · N/M models
 
 DISSENT:
-- <model X>: <decision Y> · <reasoning>
+- <ModelName>: <decision> · <reasoning one-liner>
+
+CONDITIONS (deduped from N models):
+- <condition 1> · voted by [S, O, F, G]
+- <condition 2> · voted by [S, F]
 
 UNIQUE CONTRIBUTIONS:
-- Model X uniquely added: <what>
-- Model Y uniquely added: <what>
+- <Model>: added "<condition text>" not in any other model
+- ...
+
+METRICS:
+- Total cost: $X.XXXX
+- Avg latency: Xs
+- Failed models: <none | list>
 ```
 
-## Canon rules for multi-IA consult
-
-1. **Nunca ocultar dissent** · si un modelo discrepa, se reporta con reasoning
-2. **Dedup honesto de condiciones** · agregar solo si son funcionalmente distintas
-3. **Highlight diferenciales** · qué aportó cada modelo que otros no
-4. **Costo tracking** · reportar total USD y latency
-5. **Failure taxonomy** · si un modelo falló (parse error · timeout · api error), reportarlo explícitamente
-
-## First orchestration proof (2026-07-03)
-
-Real case tested: Operator Tipo E · licencia vencida 45 días · experiencia 8 meses · referencia impuntual.
-
-Result: **4/4 models → hire_with_conditions** (Sonnet 5, Opus 4.7, Fable 5, GPT-5)
-
-Consensus conditions (universal):
-- Renovar licencia federal antes de primera ruta
-- Periodo prueba 60-90 días
-- Rutas iniciales con operador senior
-- Capacitación doble remolque
-
-Diferenciales por modelo:
-- **GPT-5** unique: "Cláusula de rescisión si no renueva licencia en 10 días hábiles" (legal timing)
-- **Opus 4.7** unique: "Validar referencia neutral con llamada directa" (due diligence)
-- **Fable 5** unique: "Evaluación práctica de manejo con doble remolque supervisada" (experiential)
-- **Sonnet 5** unique: "Asignar rutas cortas primeras 4 semanas" (progressive complexity)
-
-## Reference
+## References
 
 - Script: `mika-core/_track3_mos_rh_multiIA.py`
-- MOS RH product: internal Dtroy engagement (Mikata AI Lab)
-- Portfolio blog post: `mikatalab.com/blog/multi-ia-consensus` (semana 4)
-
-**Infraestructura: Mika · Mikata AI Lab 🎀**
+- `../vera-audit-first/SKILL.md` · chain when case includes operator data lookup

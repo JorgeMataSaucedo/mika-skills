@@ -1,65 +1,59 @@
 ---
 name: vera-audit-first
-description: Ask Vera · audit-first AI assistant for Mexican logistics operators. Every response traceable to a SQL row · zero cross-tenant memory by design · guardian verdict per query. Use when the user asks about operator data (docs, pay, trips, bonuses, agenda) OR wants to see the failure taxonomy for AI responses OR needs an example of audit-first LLM architecture.
+description: "Trigger: user asks operator data (docs, pay, trips, bonuses, agenda) OR wants an audit-first LLM architecture example. Query Vera via MCP with guardian verdict and SQL trace visible."
+license: MIT
+metadata:
+  author: Miguel Mata · Mikata AI Lab
+  version: 1.0.0
 ---
 
 # vera-audit-first
 
-You have access to **Vera** · a production audit-first assistant serving Mexican fleet operators. Every response is traceable to a specific SQL row · zero cross-tenant memory by design · guardian semantic filter runs on every output.
+## Activation Contract
 
-## When to use this skill
+Load this skill when the user:
+- Asks about a specific Mexican logistics operator's data (docs, pay, trips, bonuses, agenda, rendimiento)
+- References `MikaLogistics`, `Mika Core`, `Vera` by name
+- Wants to see the failure taxonomy (`mlTrace`) for AI responses
+- Asks for a live example of audit-first LLM architecture
 
-Trigger this skill when:
+## Hard Rules
 
-- User asks operator-level questions (**"¿cuándo vence mi licencia?"** · **"¿cuánto voy a cobrar?"** · **"¿por qué me redujeron el bono?"**)
-- User wants to inspect Vera's failure taxonomy (`mlTrace` table anonymized)
-- User needs a live example of audit-first LLM architecture (for reference, presentation, or teaching)
-- User references **MikaLogistics · Mika Core · Vera** by name
+1. NEVER invent financial amounts, dates, or operator identities. If Vera returns `guardian_verdict != pass`, relay honestly.
+2. NEVER strip the `correlation_id` from the response. It is the audit anchor.
+3. NEVER call Vera without an `operator_id`. Default to `1` (Miguel Mata seed) if unspecified.
+4. NEVER pass `generate_audio=True` unless the user explicitly requests voice output.
+5. If MCP server `mika-vera-mcp-server` is not loaded, tell the user to install from `github.com/JorgeMataSaucedo/mika-vera-mcp-server` and stop.
 
-## How to use
+## Decision Gates
 
-Call the MCP tool `vera_ask` from `mika-vera-mcp-server` with the operator question. If the server isn't loaded, install it first from `github.com/JorgeMataSaucedo/mika-vera-mcp-server`.
+| Guardian verdict | Action |
+|---|---|
+| `pass` | Relay `answer` verbatim + show pill row (verdict, cost, latency) |
+| `hold` | Relay + note "data not confirmed · verify with RH" |
+| `block` | Do NOT relay Vera's response text. Escalate to human review. |
+| Error / timeout | Report error kind + suggest retry or contact ops |
 
+## Execution Steps
+
+1. Prepend the current screen context to the question when known: `[MikaLogistics operator app · pantalla: <screen>] <question>`
+2. Call `vera_ask(question, operator_id, generate_audio=False)`
+3. Read `guardian_verdict`. Apply Decision Gate above.
+4. Extract `category`, `context_used`, `cost_usd`, `latency_ms`, `correlation_id` for display.
+5. If user asked for voice, re-call with `generate_audio=True` and play `audio_b64`.
+
+## Output Contract
+
+Return to the user:
 ```
-vera_ask(question="¿cuándo vence mi licencia federal?", operator_id=1)
+<Vera's answer text>
+
+[verdict] · [cost $X.XXXX] · [latency Xms] · [correlation_id]
 ```
 
-Response includes:
+If verdict is `hold` or `block`, prefix with `⚠` and skip relaying uncertain content.
 
-- `answer` · Vera's response in Spanish
-- `guardian_verdict` · `pass` | `hold` | `block`
-- `category` · docs · dinero · agenda · bono · rendimiento · identity
-- `context_used` · list of SQL tables consulted
-- `cost_usd` · per-query cost
-- `latency_ms` · total latency
-- `correlation_id` · UUID for cross-reference in `mlTrace`
+## References
 
-## Canon rules Vera respects (verbatim from system prompt)
-
-1. **"No construir canon que no existe"** · Vera refuses to confirm fake history even if user insists
-2. **"Silencio honesto antes que ficción cómoda"** · Vera says *"no lo tengo, pregúntale a RH"* when data missing
-3. **Zero cross-tenant memory** · each vertical is isolated instance
-4. **Guardian semantic filter** runs post-generation before user sees response
-
-## Golden set metrics (2026-07-02 · Sonnet 5 in Azure production)
-
-- 48/50 PASS (96%)
-- 3/3 PASS on identity attacks (0 rope-in to fake canon)
-- Avg cost: $0.003 per query
-- p50 latency: 2.2s · p95: 3.4s
-
-## Failure taxonomy visible
-
-Use `vera_trace_summary(hours=24)` to see the last day's queries: categories, guardian verdicts, error flags, hallucination suspects, cost, latency. This is the artifact that separates portfolio from engineering.
-
-## Voice output
-
-Pass `generate_audio=True` to get MP3 base64 · voice **Coral** (OpenAI `gpt-4o-mini-tts` · Mexican Spanish · warm energetic feminine).
-
-## Reference
-
-- Public repo: `github.com/JorgeMataSaucedo/mika-vera-mcp-server`
-- Live spec: `mikatalab.com/spec` · `mikatalab.com/vera`
-- Post announcement (blog): `mikatalab.com/blog/vera-announcement`
-
-**Infraestructura: Mika · Mikata AI Lab 🎀**
+- `../mikalogistics-operator-support/SKILL.md` · chain for UX guidance
+- `../capa4-autoevolution-review/SKILL.md` · chain when auditing Vera failures
