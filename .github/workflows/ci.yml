@@ -1,0 +1,35 @@
+name: Validate Skills
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate SKILL.md format
+        run: python tests/validate_skills.py
+
+      - name: Check LICENSE + README present
+        run: |
+          test -f README.md
+          test -f LICENSE
+
+      - name: List discovered skills
+        run: |
+          for d in */; do
+            if [ -f "$d/SKILL.md" ]; then
+              name=$(grep '^name:' "$d/SKILL.md" | head -1 | cut -d: -f2 | tr -d ' ')
+              echo "  ✓ $name"
+            fi
+          done
