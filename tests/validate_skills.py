@@ -14,6 +14,12 @@ import sys
 import re
 from pathlib import Path
 
+if sys.stdout.encoding.lower() != "utf-8":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 
 REQUIRED_SECTIONS = [
     "## Activation Contract",
@@ -24,8 +30,8 @@ REQUIRED_SECTIONS = [
     "## References",
 ]
 DESCRIPTION_MAX = 250
-BODY_WARN_TOKENS = 700
-BODY_HARD_CAP = 2000  # rough char cap; adjust if we integrate tiktoken
+BODY_WARN_CHARS = 2000   # ~500 tokens · warn if approaching
+BODY_HARD_CAP_CHARS = 4000  # ~1000 tokens · hard cap per gentle-ai guide
 
 
 def parse_frontmatter(text):
@@ -80,12 +86,12 @@ def validate_skill(skill_path):
     if ordered_names != [s for s in REQUIRED_SECTIONS if s in ordered_names]:
         errors.append(f"sections out of order: got {ordered_names}")
 
-    # Body budget (rough char count)
+    # Body budget (rough char count · 1 token ≈ 4 chars)
     body_chars = len(body)
-    if body_chars > BODY_HARD_CAP:
-        errors.append(f"body too long ({body_chars} > {BODY_HARD_CAP} chars, hard cap)")
-    elif body_chars > BODY_WARN_TOKENS * 4:  # rough: 1 token ≈ 4 chars
-        warnings.append(f"body approaching cap ({body_chars} chars, warn >{BODY_WARN_TOKENS*4})")
+    if body_chars > BODY_HARD_CAP_CHARS:
+        errors.append(f"body too long ({body_chars} > {BODY_HARD_CAP_CHARS} chars, hard cap)")
+    elif body_chars > BODY_WARN_CHARS:
+        warnings.append(f"body approaching cap ({body_chars} chars, warn >{BODY_WARN_CHARS})")
 
     return errors, warnings
 
